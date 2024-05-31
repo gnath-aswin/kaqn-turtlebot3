@@ -1,0 +1,43 @@
+{   
+"NAME_RUN" : "negative_reward",
+
+"comment_1" : "TRAINING SETTINGS",
+"EPOCHS" : 2000,
+"STEPS" : 300,
+"DIRECTORY_TO_SAVE_RESULTS" : "/evaluation/negative_reward/",
+"DIRECTORY_TO_SAVE_GRAPHS" : "/evaluation/negative_reward/",
+"DIRECTORY_TO_SAVE_MODELS" : "/models/",
+
+"comment_2" : "AGENT SETTINGS",
+"GAMMA" : 0.99,
+"EPSILON" : 1.0,
+"BATCH_SIZE" : 256, 
+"NO_OF_ACTIONS" : 5,
+"EPSILON_MIN" : 0.01,
+"INPUT_DIMENSION" : [12],  "comment_":"Modify get_state() in environment class accordingly",
+"LEARNING_RATE" : 0.0025,
+"HIDDEN_UNITS" : 256,
+"MEMORY_SIZE" : 100000,
+"EPSILON_DECAY" : 5e-4,
+"TARGET_UPDATE_FREQUENCY" : 1000,
+
+"comment_3" : "ENVIRONMENT SETTINGS",
+"COLLISION_DISTANCE" : 0.05,
+"TARGET_DISTANCE" : 0.2,
+"LINEAR_VELOCITY" : 0.15,
+
+"comment_4" : "GOAL SETTINGS - MANUAL",
+"GOAL_LIST_X" : [0.8, 1.5, 0.5, 0.2, -0.8, -1, -0.8, 0.7, 1.2, 0.5, 0, -0.1, -1.5],
+"GOAL_LIST_Y" : [0, -0.5, -1.5, 1.2, -0.9, 1, 1.1, -1.3, 1.2, 1.1, -1, 1.6, -0.8],
+"GOAL_LIST_X1" : [1.5, 1.5, 1.5, 0.5, -0.8, -0.8, -0.8, 0.8, 0.8, 0.5, 0, -0.1, -1.5],
+"GOAL_LIST_Y1" : [0, -1.5, -1.5, 1.5, -0.9, 0.8, 1.5, -1.5, 0.8, 1.1, -1, 1.6, -0.8],
+"GOAL_LIST_X2" : [3.2, 3.2, -3.2, -3.2],
+"GOAL_LIST_Y2" : [1.5, -1.5, -1.5, 1.5],
+
+"comment_5" : "OBSTACLE SETTINGS",
+"OBSTACLE_LIST_X" : [0.8, 0.8,-0.8, -0.8, 0.8, 0.0, -0.8, 0.0],
+"OBSTACLE_LIST_Y" : [-0.8, 0.8,-0.8, 0.8, 0.0, 0.8, 0.0, -0.8],
+"OBSTACLE_COUNT" : 4,
+
+"SEED" : 2202
+}
