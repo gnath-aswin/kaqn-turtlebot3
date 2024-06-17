@@ -159,10 +159,10 @@ class Env():
             
             # Reward function with angle ratio + distance ratio + angle penalty
             angle_ratio = current_heading / math.pi
-            angle_reward = 2*(0.5-(angle_ratio**2))-2 
+            angle_reward = 2*(0.5-(angle_ratio**2)) 
 
             distance_ratio = current_distance / self.initial_goal_distance
-            distance_reward = 2*(1 - math.sqrt(2 * distance_ratio))-2 if distance_ratio>=0 else (-1 - math.sqrt(2 * distance_ratio))
+            distance_reward = 2*(1 - math.sqrt(2 * distance_ratio))if distance_ratio>=0 else (1 - math.sqrt(2 * distance_ratio))
 
             angle_penalty = 1* math.pi * abs(self.prev_heading - current_heading)
             reward = angle_reward + distance_reward - angle_penalty

@@ -7,27 +7,7 @@ import torch as T
 import os
 from json import load
 import numpy as np
-
-
-class KANQN(KAN):
-    def __init__(self, lr, input_dims, hidden_nodes, n_actions, grid, k) -> None:
-        super(KANQN, self).__init__()
-        self.input_dims = input_dims
-        self.hidden = hidden_nodes
-        self.n_actions = n_actions
-        self.grid = grid
-        self.k = k
-        self.lr = lr
-        self.q_network = KAN(width=[*self.input_dims, self.hidden, self.n_actions], grid=self.grid, k=3, device = 'cpu')
-            # bias_trainable=False,
-            # sp_trainable=False,
-            # sb_trainable=False
-        
-        print(*self.input_dims, self.hidden, self.n_actions)
-        
-        self.loss = nn.MSELoss()
-        self.optimizer = T.optim.Adam(self.q_network.parameters(), lr = self.lr)
-        self.device = T.device('cpu')
+ 
 
 # Load settings from settings.json.
 settings_path = os.path.dirname(os.path.realpath(__file__)) 
@@ -58,14 +38,16 @@ class Agent():
         self.batch_size = batch_size
         self.mem_counter = 0
         self.target_network_update_frequency = 1000
-        self.Q_eval = KAN(width = [*input_dims, 8, n_actions], grid = 5, k=3)
-        self.target_network = KAN(width = [*input_dims, 8, n_actions], grid = 5, k=3)
+        self.device = T.device('cpu')
+        self.Q_eval = KAN(width = [*input_dims, 8, n_actions], grid = 5, k=3, device = self.device)
+        self.target_network = KAN(width = [*input_dims, 8, n_actions], grid = 5, k=3, device=self.device)
         self.state_memory = np.zeros((self.mem_size, *input_dims), dtype=np.float32)
         self.new_state_memory = np.zeros((self.mem_size, *input_dims), dtype=np.float32)
         self.action_memory = np.zeros(self.mem_size, dtype=np.int32)
         self.reward_memory = np.zeros(self.mem_size, dtype=np.float32)
         self.terminal_memory = np.zeros(self.mem_size, dtype=np.bool_)
         self.optimizer = T.optim.Adam(self.Q_eval.parameters(), lr = self.lr)
+      
 
 
 
@@ -99,12 +81,26 @@ class Agent():
             int: Selected action.
         """
         if np.random.random() > self.epsilon:
-            state = T.tensor([observation]).to(self.Q_eval.device)
+            state = T.tensor(observation).unsqueeze(dim=0).to(self.device)
             actions = self.Q_eval(state)
             action = T.argmax(actions).item()
         else:
             action = np.random.choice(self.action_space)
         return action
+    
+    def load_models(self, model_path=None):
+        print('... loading models...')
+        checkpoint = T.load('/home/void/catkin_ws/src/kanqn/models/continual_learning1.pth')
+        self.Q_eval.load_state_dict(checkpoint["model_state_dict"])
+        self.target_network.load_state_dict(checkpoint["model_state_dict"])
+        self.optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+
+    def initialize_models(self):
+        print('... initializing models...')
+        dummy_input = T.zeros(12).unsqueeze(dim=0)
+        with T.no_grad():
+            action = self.Q_eval(dummy_input)
+            action_target = self.target_network(dummy_input)
 
     def learn(self, lamb=0.0, lamb_l1=1.0, lamb_entropy=2.0, small_mag_threshold=1e-16, small_reg_factor=1.0, lamb_coef=0.0, lamb_coefdiff=0.0) -> None:
         """
@@ -116,19 +112,7 @@ class Agent():
         if self.mem_counter % self.target_network_update_frequency == 0:
             self.target_network.load_state_dict(self.Q_eval.state_dict())
 
-#         def kan_train(
-#     net,
-#     target,
-#     data,
-#     optimizer,
-#     gamma=0.99,
-#     
   
-   
-    
-
-# ):    
-        
         def reg(acts_scale):
             def nonlinear(x, th=small_mag_threshold, factor=small_reg_factor):
                 return (x < th) * x * factor + (x > th) * (x + (factor - 1) * th)
@@ -160,10 +144,10 @@ class Agent():
         batch = np.random.choice(max_mem, self.batch_size, replace=False)
 
         batch_index = np.arange(self.batch_size, dtype=np.int32)
-        state_batch = T.tensor(self.state_memory[batch], requires_grad=True).to(self.Q_eval.device)
-        new_state_batch = T.tensor(self.new_state_memory[batch], requires_grad=True).to(self.Q_eval.device)
-        reward_batch = T.tensor(self.reward_memory[batch], requires_grad=True).to(self.Q_eval.device)
-        terminal_batch = T.tensor(self.terminal_memory[batch]).to(self.Q_eval.device)
+        state_batch = T.tensor(self.state_memory[batch], requires_grad=True).to(self.device)
+        new_state_batch = T.tensor(self.new_state_memory[batch], requires_grad=True).to(self.device)
+        reward_batch = T.tensor(self.reward_memory[batch], requires_grad=True).to(self.device)
+        terminal_batch = T.tensor(self.terminal_memory[batch]).to(self.device)
         action_batch = self.action_memory[batch]
 
         with T.no_grad():

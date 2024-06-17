@@ -142,7 +142,7 @@ class Agent():
         if self.mem_counter % self.target_network_update_frequency == 0:
             self.target_network.load_state_dict(self.Q_eval.state_dict())
 
-        
+        self.Q_eval.optimizer.zero_grad()
         max_mem = min(self.mem_counter, self.mem_size)
         batch = np.random.choice(max_mem, self.batch_size, replace=False)
 
@@ -153,14 +153,12 @@ class Agent():
         terminal_batch = T.tensor(self.terminal_memory[batch]).to(self.Q_eval.device)
         action_batch = self.action_memory[batch]
 
-        q_eval = self.Q_eval(state_batch)[batch_index, action_batch]
-        q_next = self.target_network(new_state_batch)
+        q_eval = self.Q_eval.forward(state_batch)[batch_index, action_batch]
+        q_next = self.target_network.forward(new_state_batch)
         q_next[terminal_batch] = 0.0
         q_target = reward_batch + self.gamma * T.max(q_next, dim=1)[0]
 
         loss = self.Q_eval.loss(q_target, q_eval).to(self.Q_eval.device)
-       
-        self.Q_eval.optimizer.zero_grad()
         loss.backward()
         self.Q_eval.optimizer.step()
 

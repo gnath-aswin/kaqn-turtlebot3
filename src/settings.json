@@ -1,11 +1,11 @@
 {   
-"NAME_RUN" : "negative_reward",
+"NAME_RUN" : "continual_learning1",
 
 "comment_1" : "TRAINING SETTINGS",
-"EPOCHS" : 2000,
+"EPOCHS" : 6000,
 "STEPS" : 300,
-"DIRECTORY_TO_SAVE_RESULTS" : "/evaluation/negative_reward/",
-"DIRECTORY_TO_SAVE_GRAPHS" : "/evaluation/negative_reward/",
+"DIRECTORY_TO_SAVE_RESULTS" : "/evaluation/continual_learning/",
+"DIRECTORY_TO_SAVE_GRAPHS" : "/evaluation/continual_learning/",
 "DIRECTORY_TO_SAVE_MODELS" : "/models/",
 
 "comment_2" : "AGENT SETTINGS",

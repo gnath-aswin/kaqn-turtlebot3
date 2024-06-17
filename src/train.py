@@ -63,7 +63,7 @@ def train_dqn(agent, env, eval, epochs, steps):
         pos_epoch.append(pos_step)
         scores.append(score)
         eps_history.append(agent.epsilon)
-        save_best_model(agent, epoch, score, max_epochs=epochs, last_epochs=500)
+        save_best_model(agent, epoch, score, max_epochs=epochs, last_epochs=4000)
         print(f"Episode {epoch+1}/{epochs} | Score = {round(score,2)} | Epsilon = {agent.epsilon    :.2f}")
     return scores, eps_history, epoch_time, pos_epoch, collision_count, goal_count, timeout_count, goal_list
 
@@ -86,7 +86,7 @@ def save_best_model(agent, epoch, reward, max_epochs, last_epochs=100):
 
     if not os.path.exists(parent_directory+settings["DIRECTORY_TO_SAVE_MODELS"]):
         os.makedirs(parent_directory+settings["DIRECTORY_TO_SAVE_MODELS"])
-    saved_model_path = parent_directory+settings["DIRECTORY_TO_SAVE_MODELS"] + settings["NAME_RUN"] + str(i) + ".pth"
+    saved_model_path = parent_directory+settings["DIRECTORY_TO_SAVE_MODELS"] + settings["NAME_RUN"]  + ".pth"
     
     if epoch > max_epochs - last_epochs:
         if os.path.exists(saved_model_path):
@@ -97,6 +97,7 @@ def save_best_model(agent, epoch, reward, max_epochs, last_epochs=100):
                 T.save({
                     'epoch': epoch,
                     'model_state_dict': agent.Q_eval.state_dict(),
+                    'optimizer_state_dict': agent.optimizer.state_dict(),
                     'reward': reward
                 }, saved_model_path)
         else:
@@ -104,21 +105,22 @@ def save_best_model(agent, epoch, reward, max_epochs, last_epochs=100):
             T.save({
                 'epoch': epoch,
                 'model_state_dict': agent.Q_eval.state_dict(),
+                'optimizer_state_dict': agent.optimizer.state_dict(),
                 'reward': reward
             }, saved_model_path)
 
 def plot_and_save_results(scores, window_size, save_path):
     x = np.arange(len(scores)- window_size+1)
-    standard_deviation = np.asanyarray([np.std(scores[i:i+window_size]) for i in range(len(scores)-window_size+1)])
-    average_score = np.asanyarray([np.mean(scores[i:i+window_size]) for i in range(len(scores))])
+    standard_deviation = np.array([np.std(scores[i:i+window_size]) for i in range(len(scores)- window_size + 1)])
+    average_score = np.array([np.mean(scores[i:i+window_size]) for i in range(len(scores))])
     rolling_mean = np.convolve(scores, np.ones(window_size)/window_size, mode='valid')
-    plt.figure()
-    plt.plot(x,rolling_mean, label="score")
-    plt.fill_between(x,rolling_mean - standard_deviation, rolling_mean + standard_deviation, color='blue', alpha=0.05, label='Standard Deviation')
-    plt.xlabel("Episodes")
-    plt.ylabel("Rewards")
-    plt.title('Reward per Episode')
-    plt.legend()
+    plt.figure(dpi=300)
+    plt.plot(x, rolling_mean, label="Mean Reward")
+    plt.fill_between(x, rolling_mean - standard_deviation, rolling_mean + standard_deviation, color='blue', alpha=0.05, label='Rewards')
+    plt.xlabel("Episodes", fontsize=14)
+    plt.ylabel("Rewards", fontsize=14)
+    plt.title('Reward per Episode',fontsize=16)
+    plt.legend(fontsize=12)
     plt.savefig(save_path)
 
 def save_evaluation_results(eval, pos_epoch, scores, goal_list, save_path):
@@ -152,35 +154,38 @@ def set_seed(seed_value):
 if __name__ == '__main__':
     rospy.init_node('env', anonymous=True)
 
-    for i in range(1):
-        # Initialize agent, environment, and evaluation
-        agent = Agent(gamma=settings["GAMMA"], epsilon=settings["EPSILON"], batch_size=settings["BATCH_SIZE"], n_actions=settings["NO_OF_ACTIONS"],  
-                    eps_end=settings["EPSILON_MIN"], input_dims=settings["INPUT_DIMENSION"], lr=settings["LEARNING_RATE"])
-        env = Env()
-        eval = Evaluation()
+    # Initialize agent, environment, and evaluation
+    agent = Agent(gamma=settings["GAMMA"], epsilon=settings["EPSILON"], batch_size=settings["BATCH_SIZE"], n_actions=settings["NO_OF_ACTIONS"],  
+                eps_end=settings["EPSILON_MIN"], input_dims=settings["INPUT_DIMENSION"], lr=settings["LEARNING_RATE"])
+    
+    agent.load_models()
+    agent.initialize_models()
+    
+    env = Env()
+    eval = Evaluation()
 
-        epochs = settings["EPOCHS"] 
-        steps = settings["STEPS"]
-        window_size = 300
-        results = train_dqn(agent, env, eval, epochs, steps)
-        scores, eps_history, epoch_time, pos_epoch, collision_count, goal_count, timeout_count,goal_list = results
-        
-        if not os.path.exists(parent_directory+settings["DIRECTORY_TO_SAVE_RESULTS"]):
-            os.makedirs(parent_directory+settings["DIRECTORY_TO_SAVE_RESULTS"])
-        save_evaluation_results(eval, pos_epoch, scores, goal_list, parent_directory+settings["DIRECTORY_TO_SAVE_RESULTS"] + settings["NAME_RUN"]+ str(i) + ".json")
-        if not os.path.exists(parent_directory+settings["DIRECTORY_TO_SAVE_GRAPHS"]):
-            os.makedirs(parent_directory+settings["DIRECTORY_TO_SAVE_GRAPHS"])
-        plot_and_save_results(scores, window_size, parent_directory+settings["DIRECTORY_TO_SAVE_GRAPHS"] + settings["NAME_RUN"] + str(i) + ".png")
+    epochs = settings["EPOCHS"] 
+    steps = settings["STEPS"]
+    window_size = 300
+    results = train_dqn(agent, env, eval, epochs, steps)
+    scores, eps_history, epoch_time, pos_epoch, collision_count, goal_count, timeout_count,goal_list = results
+    
+    if not os.path.exists(parent_directory+settings["DIRECTORY_TO_SAVE_RESULTS"]):
+        os.makedirs(parent_directory+settings["DIRECTORY_TO_SAVE_RESULTS"])
+    save_evaluation_results(eval, pos_epoch, scores, goal_list, parent_directory+settings["DIRECTORY_TO_SAVE_RESULTS"] + settings["NAME_RUN"] + ".json")
+    if not os.path.exists(parent_directory+settings["DIRECTORY_TO_SAVE_GRAPHS"]):
+        os.makedirs(parent_directory+settings["DIRECTORY_TO_SAVE_GRAPHS"])
+    plot_and_save_results(scores, window_size, parent_directory+settings["DIRECTORY_TO_SAVE_GRAPHS"] + settings["NAME_RUN"] + ".png")
 
-        # Plot policy
-        plt.figure(dpi=300)
-        agent.Q_eval.prune()
-        agent.Q_eval.plot(mask=True)
-        plt.savefig("kaqn_policy.png", dpi=1000)
+    # Plot policy
+    plt.figure(dpi=300)
+    agent.Q_eval.prune()
+    agent.Q_eval.plot(mask=True)
+    plt.savefig(parent_directory+'/policy/kaqn_policy_obstacle.png', dpi=1000)
 
-        #Delete goal model
-        rospy.wait_for_service('gazebo/delete_model')
-        del_model_prox = rospy.ServiceProxy('gazebo/delete_model', DeleteModel)
-        del_model_prox("goal")
+    #Delete goal model
+    rospy.wait_for_service('gazebo/delete_model')
+    del_model_prox = rospy.ServiceProxy('gazebo/delete_model', DeleteModel)
+    del_model_prox("goal")
 
 
